@@ -3,7 +3,8 @@ import time
 
 import schedule
 
-from src import config, graph, sync, tagging
+from src import config, graph, seed, sync, tagging
+from src.logging_utils import setup_logging
 
 
 def do_sync() -> None:
@@ -19,6 +20,11 @@ def do_tag() -> None:
 def do_graph() -> None:
     path = graph.generate()
     print(f"[graph] grafo generato in {path}")
+
+
+def do_seed() -> None:
+    seed.seed_test_data()
+    print("[seed] dati di prova inseriti nel DB locale")
 
 
 def do_pipeline() -> None:
@@ -48,8 +54,12 @@ def main() -> None:
     subparsers.add_parser("graph", help="Genera il grafo HTML dai tag")
     subparsers.add_parser("pipeline", help="Esegue sync + tag + graph una volta")
     subparsers.add_parser("run", help="Esegue la pipeline in loop, a intervalli")
+    subparsers.add_parser(
+        "seed", help="Inserisce dati di prova gia' taggati (per testare il grafo)"
+    )
 
     args = parser.parse_args()
+    setup_logging()
 
     commands = {
         "sync": do_sync,
@@ -57,6 +67,7 @@ def main() -> None:
         "graph": do_graph,
         "pipeline": do_pipeline,
         "run": run_loop,
+        "seed": do_seed,
     }
     commands[args.command]()
 

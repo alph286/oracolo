@@ -6,10 +6,14 @@ import networkx as nx
 from pyvis.network import Network
 
 from src import config, db_local
+from src.logging_utils import get_logger
+
+log = get_logger(__name__)
 
 
 def build_graph() -> nx.Graph:
     entries = db_local.get_entries_with_tags()
+    log.info("Costruisco il grafo da %d entry", len(entries))
 
     tag_counts: Counter = Counter()
     edge_weights: Counter = Counter()
@@ -26,6 +30,7 @@ def build_graph() -> nx.Graph:
     for (tag_a, tag_b), weight in edge_weights.items():
         g.add_edge(tag_a, tag_b, weight=weight)
 
+    log.info("Grafo: %d nodi (tag), %d archi", g.number_of_nodes(), g.number_of_edges())
     return g
 
 
@@ -51,9 +56,15 @@ def render_graph(g: nx.Graph, output_path: str | None = None) -> str:
         net.add_edge(source, target, value=data.get("weight", 1), color="#4a8fa8")
 
     net.write_html(output_path, open_browser=False, notebook=False)
+    log.info("Grafo scritto in %s", output_path)
     return output_path
 
 
 def generate() -> str:
     g = build_graph()
+    if g.number_of_nodes() == 0:
+        log.warning(
+            "Nessun tag trovato: il grafo sara' vuoto. "
+            "Hai gia' eseguito 'sync' e 'tag' (o 'seed' per dati di prova)?"
+        )
     return render_graph(g)
