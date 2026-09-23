@@ -1,10 +1,13 @@
 import argparse
 import time
+from pathlib import Path
 
 import schedule
 
 from src import config, graph, seed, sync, tagging
-from src.logging_utils import setup_logging
+from src.logging_utils import get_logger, setup_logging
+
+log = get_logger(__name__)
 
 
 def do_sync() -> None:
@@ -60,6 +63,7 @@ def main() -> None:
 
     args = parser.parse_args()
     setup_logging()
+    log.info("DB locale: %s", Path(config.LOCAL_DB_PATH).resolve())
 
     commands = {
         "sync": do_sync,
