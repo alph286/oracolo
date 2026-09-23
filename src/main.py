@@ -9,7 +9,7 @@ from src.logging_utils import setup_logging
 
 def do_sync() -> None:
     n = sync.run_sync()
-    print(f"[sync] {n} entry sincronizzate da MySQL")
+    print(f"[sync] {n} entry sincronizzate dalla sorgente remota")
 
 
 def do_tag() -> None:

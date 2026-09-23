@@ -1,4 +1,4 @@
-import mysql.connector
+import requests
 
 from src import config
 from src.logging_utils import get_logger
@@ -7,50 +7,37 @@ log = get_logger(__name__)
 
 
 def fetch_all_entries() -> list[dict]:
-    """Legge tutte le righe dalla tabella MySQL online e le normalizza
-    nel formato atteso da db_local.upsert_entries.
+    """Scarica tutte le entry dall'endpoint PHP (hosting/api/export.php)
+    e le normalizza nel formato atteso da db_local.upsert_entries.
     """
     log.info(
-        "Connessione a MySQL %s:%s/%s come utente '%s' (timeout %ss)...",
-        config.MYSQL_HOST,
-        config.MYSQL_PORT,
-        config.MYSQL_DATABASE,
-        config.MYSQL_USER,
-        config.MYSQL_CONNECT_TIMEOUT_SECONDS,
+        "Richiesta a %s (timeout %ss)...",
+        config.REMOTE_API_URL,
+        config.REMOTE_API_TIMEOUT_SECONDS,
     )
     try:
-        conn = mysql.connector.connect(
-            host=config.MYSQL_HOST,
-            port=config.MYSQL_PORT,
-            user=config.MYSQL_USER,
-            password=config.MYSQL_PASSWORD,
-            database=config.MYSQL_DATABASE,
-            connection_timeout=config.MYSQL_CONNECT_TIMEOUT_SECONDS,
+        response = requests.get(
+            config.REMOTE_API_URL,
+            headers={"X-Api-Key": config.REMOTE_API_KEY},
+            timeout=config.REMOTE_API_TIMEOUT_SECONDS,
         )
-    except mysql.connector.Error:
-        log.exception("Connessione a MySQL fallita")
-        raise
-    log.info("Connesso. Leggo la tabella '%s'...", config.MYSQL_TABLE)
-    try:
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute(
-            f"SELECT id, {config.MYSQL_TEXT_COLUMN} AS text, created_at, "
-            f"status, ip, likes FROM {config.MYSQL_TABLE}"
+        response.raise_for_status()
+    except requests.RequestException:
+        log.exception(
+            "Richiesta a %s fallita (URL/API key corretti in .env? "
+            "il sito e' raggiungibile?)",
+            config.REMOTE_API_URL,
         )
-        rows = cursor.fetchall()
-        cursor.close()
-    except mysql.connector.Error:
-        log.exception("Query sulla tabella '%s' fallita", config.MYSQL_TABLE)
         raise
-    finally:
-        conn.close()
 
-    log.info("Lette %d righe da MySQL", len(rows))
+    rows = response.json()
+    log.info("Lette %d righe da %s", len(rows), config.REMOTE_API_URL)
+
     return [
         {
             "id": row["id"],
             "text": row["text"],
-            "created_at": str(row["created_at"]) if row["created_at"] else None,
+            "created_at": row.get("created_at"),
             "status": row.get("status"),
             "ip": row.get("ip"),
             "likes": row.get("likes") or 0,

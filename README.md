@@ -1,8 +1,9 @@
 # Oracolo
 
-Sincronizza le entry di un DB MySQL online in un archivio locale SQLite,
-le tagga tramite un modello generativo su Ollama (in rete), e genera una
-mappa a nodi interattiva basata sui tag condivisi tra le entry.
+Sincronizza le entry di un DB MySQL online (tramite un endpoint PHP
+sul hosting) in un archivio locale SQLite, le tagga tramite un modello
+generativo su Ollama (in rete), e genera una mappa a nodi interattiva
+basata sui tag condivisi tra le entry.
 
 ## Setup
 
@@ -13,14 +14,19 @@ pip install -r requirements.txt
 cp .env.example .env   # poi compila le variabili
 ```
 
+Carica anche [hosting/api/export.php](hosting/api/export.php) nella stessa
+cartella del `config.php` esistente sul server (vedi commento in testa al
+file per l'unica cosa da adattare: il nome della tabella).
+
 ## Uso
 
 ```bash
-python -m src.main sync      # scarica/aggiorna le entry da MySQL
+python -m src.main sync      # scarica/aggiorna le entry dalla sorgente remota
 python -m src.main tag       # tagga le entry nuove/modificate via Ollama
 python -m src.main graph     # genera output/graph.html
 python -m src.main pipeline  # sync + tag + graph, una volta
 python -m src.main run       # come pipeline, ma in loop ogni SYNC_INTERVAL_MINUTES
+python -m src.main seed      # inserisce dati di prova gia' taggati (per testare il grafo)
 ```
 
 ## Note

@@ -10,13 +10,10 @@ def _int(name: str, default: int) -> int:
     return int(value) if value else default
 
 
-MYSQL_HOST = os.getenv("MYSQL_HOST", "")
-MYSQL_PORT = _int("MYSQL_PORT", 3306)
-MYSQL_USER = os.getenv("MYSQL_USER", "")
-MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "")
-MYSQL_DATABASE = os.getenv("MYSQL_DATABASE", "")
-MYSQL_TABLE = os.getenv("MYSQL_TABLE", "messages")
-MYSQL_TEXT_COLUMN = os.getenv("MYSQL_TEXT_COLUMN", "text")
+# Endpoint PHP (hosting/api/export.php) che espone il DB via HTTP,
+# protetto dalla stessa api_key definita in config.php sul server.
+REMOTE_API_URL = os.getenv("REMOTE_API_URL", "")
+REMOTE_API_KEY = os.getenv("REMOTE_API_KEY", "")
 
 LOCAL_DB_PATH = os.getenv("LOCAL_DB_PATH", "data/local.db")
 
@@ -30,5 +27,5 @@ MAX_TAGS_PER_ENTRY = _int("MAX_TAGS_PER_ENTRY", 3)
 GRAPH_OUTPUT_PATH = os.getenv("GRAPH_OUTPUT_PATH", "output/graph.html")
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-MYSQL_CONNECT_TIMEOUT_SECONDS = _int("MYSQL_CONNECT_TIMEOUT_SECONDS", 10)
+REMOTE_API_TIMEOUT_SECONDS = _int("REMOTE_API_TIMEOUT_SECONDS", 15)
 OLLAMA_TIMEOUT_SECONDS = _int("OLLAMA_TIMEOUT_SECONDS", 60)
