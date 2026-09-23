@@ -82,6 +82,11 @@ def upsert_entries(rows: list[dict]) -> int:
     return len(rows)
 
 
+def count_entries() -> int:
+    with get_connection() as conn:
+        return conn.execute("SELECT COUNT(*) AS n FROM entries").fetchone()["n"]
+
+
 def get_untagged_entries() -> list[sqlite3.Row]:
     with get_connection() as conn:
         return conn.execute(

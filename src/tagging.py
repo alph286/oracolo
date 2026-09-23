@@ -69,9 +69,13 @@ def tag_pending_entries() -> int:
     tagging). Ritorna il numero di entry taggate con successo.
     """
     entries = db_local.get_untagged_entries()
+    total = db_local.count_entries()
     log.info(
-        "%d entry da taggare, modello '%s' su %s",
+        "%d entry da taggare su %d totali (le altre %d hanno gia' dei tag e "
+        "vengono saltate), modello '%s' su %s",
         len(entries),
+        total,
+        total - len(entries),
         config.OLLAMA_TAG_MODEL,
         config.OLLAMA_HOST,
     )
