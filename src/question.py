@@ -69,25 +69,57 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     background: #e91ee9;
     color: #1a1a1a;
   }}
+  .reroll:disabled {{
+    opacity: 0.5;
+    cursor: default;
+  }}
+  .reroll.toggled {{
+    background: #e91ee9;
+    color: #1a1a1a;
+  }}
+  .buttons {{
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }}
   .wrap {{
     display: flex;
     flex-direction: column;
     align-items: center;
+  }}
+  .answer {{
+    margin-top: 1.5rem;
+    max-width: 36rem;
+    font-size: 1.1rem;
+    line-height: 1.5;
+    color: #cfcfcf;
+    font-style: italic;
+    min-height: 1.5rem;
   }}
 </style>
 </head>
 <body>
   <div class="wrap">
     <div class="question" id="question">{first_question}</div>
-    <button class="reroll" id="reroll" type="button">un'altra domanda</button>
+    <div class="buttons">
+      <button class="reroll" id="reroll" type="button">un'altra domanda</button>
+      <button class="reroll" id="toggle-rotation" type="button">metti in pausa</button>
+      <button class="reroll" id="answer-btn" type="button">chiedi la risposta</button>
+    </div>
+    <div class="answer" id="answer"></div>
   </div>
   <script>
     const QUESTIONS = {questions_json};
     const ROTATE_SECONDS = {rotate_seconds};
     const el = document.getElementById("question");
-    const button = document.getElementById("reroll");
+    const rerollButton = document.getElementById("reroll");
+    const toggleButton = document.getElementById("toggle-rotation");
+    const answerButton = document.getElementById("answer-btn");
+    const answerEl = document.getElementById("answer");
     let last = QUESTIONS.indexOf(el.textContent);
     let timer = null;
+    let paused = false;
 
     function pickNext() {{
       if (QUESTIONS.length <= 1) return QUESTIONS[0] || "";
@@ -100,6 +132,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     }}
 
     function showNext() {{
+      answerEl.textContent = "";
       el.classList.add("fade");
       setTimeout(() => {{
         el.textContent = pickNext();
@@ -108,16 +141,55 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     }}
 
     function startRotation() {{
-      if (ROTATE_SECONDS > 0 && QUESTIONS.length > 1) {{
+      if (!paused && ROTATE_SECONDS > 0 && QUESTIONS.length > 1) {{
         timer = setInterval(showNext, ROTATE_SECONDS * 1000);
       }}
     }}
 
-    button.addEventListener("click", () => {{
-      showNext();
+    function stopRotation() {{
       if (timer) {{
         clearInterval(timer);
+        timer = null;
+      }}
+    }}
+
+    rerollButton.addEventListener("click", () => {{
+      showNext();
+      if (!paused) {{
+        stopRotation();
         startRotation();
+      }}
+    }});
+
+    toggleButton.addEventListener("click", () => {{
+      paused = !paused;
+      toggleButton.textContent = paused ? "riprendi rotazione" : "metti in pausa";
+      toggleButton.classList.toggle("toggled", paused);
+      if (paused) {{
+        stopRotation();
+      }} else {{
+        startRotation();
+      }}
+    }});
+
+    answerButton.addEventListener("click", async () => {{
+      answerButton.disabled = true;
+      answerEl.textContent = "l'oracolo riflette...";
+      try {{
+        const res = await fetch("/api/answer", {{
+          method: "POST",
+          headers: {{ "Content-Type": "application/json" }},
+          body: JSON.stringify({{ question: el.textContent }}),
+        }});
+        const data = await res.json();
+        answerEl.textContent = res.ok
+          ? data.answer
+          : (data.error || "l'oracolo non risponde");
+      }} catch (err) {{
+        answerEl.textContent =
+          "impossibile contattare l'oracolo (serve avviato con 'python -m src.main serve'?)";
+      }} finally {{
+        answerButton.disabled = false;
       }}
     }});
 

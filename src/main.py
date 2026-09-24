@@ -4,7 +4,7 @@ from pathlib import Path
 
 import schedule
 
-from src import config, graph, question, seed, sync, tagging
+from src import config, graph, question, seed, server, sync, tagging
 from src.logging_utils import get_logger, setup_logging
 
 log = get_logger(__name__)
@@ -28,6 +28,10 @@ def do_graph() -> None:
 def do_question() -> None:
     path = question.generate()
     print(f"[question] domanda generata in {path}")
+
+
+def do_serve() -> None:
+    server.run_server()
 
 
 def do_seed() -> None:
@@ -67,6 +71,10 @@ def main() -> None:
     subparsers.add_parser("pipeline", help="Esegue sync + tag + graph + question una volta")
     subparsers.add_parser("run", help="Esegue la pipeline in loop, a intervalli")
     subparsers.add_parser(
+        "serve",
+        help="Avvia il webserver locale che serve output/ e risponde alle domande via Ollama",
+    )
+    subparsers.add_parser(
         "seed", help="Inserisce dati di prova gia' taggati (per testare il grafo)"
     )
 
@@ -81,6 +89,7 @@ def main() -> None:
         "question": do_question,
         "pipeline": do_pipeline,
         "run": run_loop,
+        "serve": do_serve,
         "seed": do_seed,
     }
     commands[args.command]()

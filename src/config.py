@@ -30,6 +30,10 @@ QUESTIONS_COUNT = _int("QUESTIONS_COUNT", 10)
 # Ogni quanti secondi la pagina passa ad un'altra domanda casuale (0 = mai)
 QUESTIONS_ROTATE_SECONDS = _int("QUESTIONS_ROTATE_SECONDS", 20)
 
+# --- Webserver locale (serve output/ e risponde alle domande via Ollama) ---
+SERVE_HOST = os.getenv("SERVE_HOST", "0.0.0.0")
+SERVE_PORT = _int("SERVE_PORT", 8000)
+
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 REMOTE_API_TIMEOUT_SECONDS = _int("REMOTE_API_TIMEOUT_SECONDS", 15)
 OLLAMA_TIMEOUT_SECONDS = _int("OLLAMA_TIMEOUT_SECONDS", 60)
