@@ -25,6 +25,7 @@ OLLAMA_TAG_MODEL = os.getenv("OLLAMA_TAG_MODEL", "llama3.1")
 MAX_TAGS_PER_ENTRY = _int("MAX_TAGS_PER_ENTRY", 3)
 
 GRAPH_OUTPUT_PATH = os.getenv("GRAPH_OUTPUT_PATH", "output/graph.html")
+QUESTION_OUTPUT_PATH = os.getenv("QUESTION_OUTPUT_PATH", "output/question.html")
 
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 REMOTE_API_TIMEOUT_SECONDS = _int("REMOTE_API_TIMEOUT_SECONDS", 15)

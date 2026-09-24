@@ -4,7 +4,7 @@ from pathlib import Path
 
 import schedule
 
-from src import config, graph, seed, sync, tagging
+from src import config, graph, question, seed, sync, tagging
 from src.logging_utils import get_logger, setup_logging
 
 log = get_logger(__name__)
@@ -25,6 +25,11 @@ def do_graph() -> None:
     print(f"[graph] grafo generato in {path}")
 
 
+def do_question() -> None:
+    path = question.generate()
+    print(f"[question] domanda generata in {path}")
+
+
 def do_seed() -> None:
     seed.seed_test_data()
     print("[seed] dati di prova inseriti nel DB locale")
@@ -34,6 +39,7 @@ def do_pipeline() -> None:
     do_sync()
     do_tag()
     do_graph()
+    do_question()
 
 
 def run_loop() -> None:
@@ -55,7 +61,10 @@ def main() -> None:
     subparsers.add_parser("sync", help="Sincronizza le entry da MySQL a locale")
     subparsers.add_parser("tag", help="Tagga le entry non ancora processate")
     subparsers.add_parser("graph", help="Genera il grafo HTML dai tag")
-    subparsers.add_parser("pipeline", help="Esegue sync + tag + graph una volta")
+    subparsers.add_parser(
+        "question", help="Genera una domanda dell'oracolo ispirata ai tag/entry"
+    )
+    subparsers.add_parser("pipeline", help="Esegue sync + tag + graph + question una volta")
     subparsers.add_parser("run", help="Esegue la pipeline in loop, a intervalli")
     subparsers.add_parser(
         "seed", help="Inserisce dati di prova gia' taggati (per testare il grafo)"
@@ -69,6 +78,7 @@ def main() -> None:
         "sync": do_sync,
         "tag": do_tag,
         "graph": do_graph,
+        "question": do_question,
         "pipeline": do_pipeline,
         "run": run_loop,
         "seed": do_seed,
