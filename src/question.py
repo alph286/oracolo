@@ -73,10 +73,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     opacity: 0.5;
     cursor: default;
   }}
-  .reroll.toggled {{
-    background: #e91ee9;
-    color: #1a1a1a;
-  }}
   .buttons {{
     display: flex;
     gap: 1rem;
@@ -104,22 +100,17 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <div class="question" id="question">{first_question}</div>
     <div class="buttons">
       <button class="reroll" id="reroll" type="button">un'altra domanda</button>
-      <button class="reroll" id="toggle-rotation" type="button">metti in pausa</button>
       <button class="reroll" id="answer-btn" type="button">chiedi la risposta</button>
     </div>
     <div class="answer" id="answer"></div>
   </div>
   <script>
     const QUESTIONS = {questions_json};
-    const ROTATE_SECONDS = {rotate_seconds};
     const el = document.getElementById("question");
     const rerollButton = document.getElementById("reroll");
-    const toggleButton = document.getElementById("toggle-rotation");
     const answerButton = document.getElementById("answer-btn");
     const answerEl = document.getElementById("answer");
     let last = QUESTIONS.indexOf(el.textContent);
-    let timer = null;
-    let paused = false;
 
     function pickNext() {{
       if (QUESTIONS.length <= 1) return QUESTIONS[0] || "";
@@ -140,37 +131,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       }}, 1000);
     }}
 
-    function startRotation() {{
-      if (!paused && ROTATE_SECONDS > 0 && QUESTIONS.length > 1) {{
-        timer = setInterval(showNext, ROTATE_SECONDS * 1000);
-      }}
-    }}
-
-    function stopRotation() {{
-      if (timer) {{
-        clearInterval(timer);
-        timer = null;
-      }}
-    }}
-
-    rerollButton.addEventListener("click", () => {{
-      showNext();
-      if (!paused) {{
-        stopRotation();
-        startRotation();
-      }}
-    }});
-
-    toggleButton.addEventListener("click", () => {{
-      paused = !paused;
-      toggleButton.textContent = paused ? "riprendi rotazione" : "metti in pausa";
-      toggleButton.classList.toggle("toggled", paused);
-      if (paused) {{
-        stopRotation();
-      }} else {{
-        startRotation();
-      }}
-    }});
+    rerollButton.addEventListener("click", showNext);
 
     answerButton.addEventListener("click", async () => {{
       answerButton.disabled = true;
@@ -192,8 +153,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         answerButton.disabled = false;
       }}
     }});
-
-    startRotation();
   </script>
 </body>
 </html>
@@ -281,7 +240,6 @@ def render_questions(questions: list[str], output_path: str | None = None) -> st
     html = HTML_TEMPLATE.format(
         first_question=first,
         questions_json=json.dumps(questions, ensure_ascii=False),
-        rotate_seconds=config.QUESTIONS_ROTATE_SECONDS,
     )
     Path(output_path).write_text(html, encoding="utf-8")
     log.info("%d domande scritte in %s", len(questions), output_path)
