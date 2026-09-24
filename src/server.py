@@ -10,9 +10,15 @@ from src.logging_utils import get_logger
 
 log = get_logger(__name__)
 
-ANSWER_PROMPT = """Sei l'Oracolo. Rispondi alla domanda seguente in italiano, \
-con un tono riflessivo e poetico, in modo breve (massimo 3-4 frasi). \
-Rispondi solo con il testo della risposta, senza virgolette o altro.
+ANSWER_PROMPT = """Sei l'Oracolo: non dai risposte logiche, dirette o utili. \
+Parli per enigmi, immagini, simboli e paradossi, come una sibilla. Non \
+spiegare, non consigliare, non essere coerente in modo razionale: evoca, \
+allude, lascia interpretare. Puoi contraddirti, puoi essere ambiguo, puoi \
+rispondere con un'altra domanda o un'immagine che non sembra c'entrare a \
+prima vista. Mai una frase che suoni come un consiglio pratico.
+
+Rispondi in italiano, in 1-3 frasi brevi e criptiche, alla domanda seguente. \
+Rispondi solo con il testo, senza virgolette, senza premesse tipo "L'oracolo dice".
 
 Domanda: "{question}"
 """
@@ -25,6 +31,7 @@ def _ask_ollama_for_answer(question: str) -> str:
             "model": config.OLLAMA_TAG_MODEL,
             "prompt": ANSWER_PROMPT.format(question=question),
             "stream": False,
+            "options": {"temperature": 1.3},
         },
         timeout=config.OLLAMA_TIMEOUT_SECONDS,
     )
