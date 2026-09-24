@@ -25,7 +25,6 @@ OLLAMA_TAG_MODEL = os.getenv("OLLAMA_TAG_MODEL", "llama3.1")
 MAX_TAGS_PER_ENTRY = _int("MAX_TAGS_PER_ENTRY", 3)
 
 GRAPH_OUTPUT_PATH = os.getenv("GRAPH_OUTPUT_PATH", "output/graph.html")
-QUESTION_OUTPUT_PATH = os.getenv("QUESTION_OUTPUT_PATH", "output/question.html")
 QUESTIONS_COUNT = _int("QUESTIONS_COUNT", 10)
 
 # --- Webserver locale (serve output/ e risponde alle domande via Ollama) ---

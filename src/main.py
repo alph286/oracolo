@@ -27,7 +27,7 @@ def do_graph() -> None:
 
 def do_question() -> None:
     path = question.generate()
-    print(f"[question] domanda generata in {path}")
+    print(f"[question] domanda sovrapposta al grafo in {path}")
 
 
 def do_serve() -> None:
@@ -66,7 +66,8 @@ def main() -> None:
     subparsers.add_parser("tag", help="Tagga le entry non ancora processate")
     subparsers.add_parser("graph", help="Genera il grafo HTML dai tag")
     subparsers.add_parser(
-        "question", help="Genera una domanda dell'oracolo ispirata ai tag/entry"
+        "question",
+        help="Sovrappone al centro di graph.html una domanda dell'oracolo ispirata ai tag/entry",
     )
     subparsers.add_parser("pipeline", help="Esegue sync + tag + graph + question una volta")
     subparsers.add_parser("run", help="Esegue la pipeline in loop, a intervalli")

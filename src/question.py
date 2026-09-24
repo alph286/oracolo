@@ -26,65 +26,64 @@ Rispondi SOLO con un oggetto JSON con questa forma esatta, senza altro testo:
 {{"questions": ["...", "..."]}}
 """
 
-HTML_TEMPLATE = """<!DOCTYPE html>
-<html lang="it">
-<head>
-<meta charset="utf-8">
-<title>Oracolo</title>
-<style>
+# Iniettati in graph.html: uno stile (prima di </head>) e un blocco con il
+# div centrale della domanda + script (prima di </body>). Cosi' la pagina
+# del grafo resta l'unica pagina, con la domanda sovrapposta al centro.
+OVERLAY_STYLE = """<style>
   html, body {{
     height: 100%;
     margin: 0;
-    background: #1a1a1a !important;
-    color: #ffffff;
-    font-family: Georgia, "Times New Roman", serif;
-  }}
-  .bg-graph {{
-    position: fixed;
-    inset: 0;
-    width: 100%;
-    height: 100%;
     overflow: hidden;
-    pointer-events: none;
-    z-index: 0;
+    background: #1a1a1a !important;
   }}
-  .bg-graph .card,
-  .bg-graph .card-body,
-  .bg-graph #mynetwork {{
+  .card, .card-body, #mynetwork {{
     width: 100% !important;
     height: 100% !important;
     margin: 0 !important;
     border: none !important;
     background-color: #1a1a1a !important;
   }}
-  .bg-overlay {{
+  .oracolo-overlay {{
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.7);
     z-index: 1;
   }}
-  .content {{
-    position: relative;
+  .oracolo-content {{
+    position: fixed;
+    inset: 0;
     z-index: 2;
-    min-height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
     padding: 2rem;
     box-sizing: border-box;
+    font-family: Georgia, "Times New Roman", serif;
+    color: #ffffff;
   }}
-  .question {{
+  .oracolo-wrap {{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }}
+  .oracolo-question {{
     max-width: 40rem;
     font-size: 2rem;
     line-height: 1.4;
     color: #e91ee9;
     transition: opacity 1s ease;
   }}
-  .question.fade {{
+  .oracolo-question.fade {{
     opacity: 0;
   }}
-  .reroll {{
+  .oracolo-buttons {{
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }}
+  .oracolo-reroll {{
     margin-top: 2rem;
     background: transparent;
     color: #e91ee9;
@@ -95,26 +94,15 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     font-size: 1rem;
     cursor: pointer;
   }}
-  .reroll:hover {{
+  .oracolo-reroll:hover {{
     background: #e91ee9;
     color: #1a1a1a;
   }}
-  .reroll:disabled {{
+  .oracolo-reroll:disabled {{
     opacity: 0.5;
     cursor: default;
   }}
-  .buttons {{
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-    justify-content: center;
-  }}
-  .wrap {{
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }}
-  .answer {{
+  .oracolo-answer {{
     margin-top: 1.5rem;
     max-width: 36rem;
     font-size: 1.1rem;
@@ -124,73 +112,69 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     min-height: 1.5rem;
   }}
 </style>
-{graph_head}
-</head>
-<body>
-  <div class="bg-graph">{graph_body}</div>
-  <div class="bg-overlay"></div>
-  <div class="content">
-    <div class="wrap">
-      <div class="question" id="question">{first_question}</div>
-      <div class="buttons">
-        <button class="reroll" id="reroll" type="button">un'altra domanda</button>
-        <button class="reroll" id="answer-btn" type="button">chiedi la risposta</button>
-      </div>
-      <div class="answer" id="answer"></div>
+"""
+
+OVERLAY_BODY = """<div class="oracolo-overlay"></div>
+<div class="oracolo-content">
+  <div class="oracolo-wrap">
+    <div class="oracolo-question" id="oracolo-question">{first_question}</div>
+    <div class="oracolo-buttons">
+      <button class="oracolo-reroll" id="oracolo-reroll" type="button">un'altra domanda</button>
+      <button class="oracolo-reroll" id="oracolo-answer-btn" type="button">chiedi la risposta</button>
     </div>
+    <div class="oracolo-answer" id="oracolo-answer"></div>
   </div>
-  <script>
-    const QUESTIONS = {questions_json};
-    const el = document.getElementById("question");
-    const rerollButton = document.getElementById("reroll");
-    const answerButton = document.getElementById("answer-btn");
-    const answerEl = document.getElementById("answer");
-    let last = QUESTIONS.indexOf(el.textContent);
+</div>
+<script>
+  const ORACOLO_QUESTIONS = {questions_json};
+  const oracoloEl = document.getElementById("oracolo-question");
+  const oracoloReroll = document.getElementById("oracolo-reroll");
+  const oracoloAnswerBtn = document.getElementById("oracolo-answer-btn");
+  const oracoloAnswerEl = document.getElementById("oracolo-answer");
+  let oracoloLast = ORACOLO_QUESTIONS.indexOf(oracoloEl.textContent);
 
-    function pickNext() {{
-      if (QUESTIONS.length <= 1) return QUESTIONS[0] || "";
-      let i;
-      do {{
-        i = Math.floor(Math.random() * QUESTIONS.length);
-      }} while (i === last);
-      last = i;
-      return QUESTIONS[i];
+  function oracoloPickNext() {{
+    if (ORACOLO_QUESTIONS.length <= 1) return ORACOLO_QUESTIONS[0] || "";
+    let i;
+    do {{
+      i = Math.floor(Math.random() * ORACOLO_QUESTIONS.length);
+    }} while (i === oracoloLast);
+    oracoloLast = i;
+    return ORACOLO_QUESTIONS[i];
+  }}
+
+  function oracoloShowNext() {{
+    oracoloAnswerEl.textContent = "";
+    oracoloEl.classList.add("fade");
+    setTimeout(() => {{
+      oracoloEl.textContent = oracoloPickNext();
+      oracoloEl.classList.remove("fade");
+    }}, 1000);
+  }}
+
+  oracoloReroll.addEventListener("click", oracoloShowNext);
+
+  oracoloAnswerBtn.addEventListener("click", async () => {{
+    oracoloAnswerBtn.disabled = true;
+    oracoloAnswerEl.textContent = "l'oracolo riflette...";
+    try {{
+      const res = await fetch("/api/answer", {{
+        method: "POST",
+        headers: {{ "Content-Type": "application/json" }},
+        body: JSON.stringify({{ question: oracoloEl.textContent }}),
+      }});
+      const data = await res.json();
+      oracoloAnswerEl.textContent = res.ok
+        ? data.answer
+        : (data.error || "l'oracolo non risponde");
+    }} catch (err) {{
+      oracoloAnswerEl.textContent =
+        "impossibile contattare l'oracolo (serve avviato con 'python -m src.main serve'?)";
+    }} finally {{
+      oracoloAnswerBtn.disabled = false;
     }}
-
-    function showNext() {{
-      answerEl.textContent = "";
-      el.classList.add("fade");
-      setTimeout(() => {{
-        el.textContent = pickNext();
-        el.classList.remove("fade");
-      }}, 1000);
-    }}
-
-    rerollButton.addEventListener("click", showNext);
-
-    answerButton.addEventListener("click", async () => {{
-      answerButton.disabled = true;
-      answerEl.textContent = "l'oracolo riflette...";
-      try {{
-        const res = await fetch("/api/answer", {{
-          method: "POST",
-          headers: {{ "Content-Type": "application/json" }},
-          body: JSON.stringify({{ question: el.textContent }}),
-        }});
-        const data = await res.json();
-        answerEl.textContent = res.ok
-          ? data.answer
-          : (data.error || "l'oracolo non risponde");
-      }} catch (err) {{
-        answerEl.textContent =
-          "impossibile contattare l'oracolo (serve avviato con 'python -m src.main serve'?)";
-      }} finally {{
-        answerButton.disabled = false;
-      }}
-    }});
-  </script>
-</body>
-</html>
+  }});
+</script>
 """
 
 FALLBACK_QUESTION = "L'oracolo tace, per ora."
@@ -266,41 +250,33 @@ def generate_questions(count: int | None = None) -> list[str]:
     return questions
 
 
-def _extract_tag_content(html: str, tag: str) -> str:
-    match = re.search(rf"<{tag}[^>]*>(.*)</{tag}>", html, re.DOTALL | re.IGNORECASE)
-    return match.group(1) if match else ""
-
-
-def _load_graph_fragments(graph_path: str) -> tuple[str, str]:
-    """Estrae head/body di graph.html, per incorporarlo come sfondo.
-
-    Serve a mostrare la nebulosa dei tag dentro question.html senza
-    iframe (che alcuni browser bloccano se la pagina e' aperta da file://).
-    """
+def render_questions(questions: list[str], graph_path: str | None = None) -> str:
+    """Inietta la domanda dell'oracolo come overlay centrale dentro graph.html."""
+    graph_path = graph_path or config.GRAPH_OUTPUT_PATH
+    graph_file = Path(graph_path)
     try:
-        graph_html = Path(graph_path).read_text(encoding="utf-8")
+        html = graph_file.read_text(encoding="utf-8")
     except FileNotFoundError:
-        log.warning("Nessun grafo trovato in %s: sfondo nebulosa assente (esegui 'graph'?)", graph_path)
-        return "", ""
-    return _extract_tag_content(graph_html, "head"), _extract_tag_content(graph_html, "body")
-
-
-def render_questions(questions: list[str], output_path: str | None = None) -> str:
-    output_path = output_path or config.QUESTION_OUTPUT_PATH
-    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        log.warning(
+            "Nessun grafo trovato in %s: impossibile sovrapporre la domanda (esegui 'graph'?)",
+            graph_path,
+        )
+        return graph_path
 
     questions = questions or [FALLBACK_QUESTION]
     first = random.choice(questions)
-    graph_head, graph_body = _load_graph_fragments(config.GRAPH_OUTPUT_PATH)
-    html = HTML_TEMPLATE.format(
+    style = OVERLAY_STYLE.format()
+    body = OVERLAY_BODY.format(
         first_question=first,
         questions_json=json.dumps(questions, ensure_ascii=False),
-        graph_head=graph_head,
-        graph_body=graph_body,
     )
-    Path(output_path).write_text(html, encoding="utf-8")
-    log.info("%d domande scritte in %s", len(questions), output_path)
-    return output_path
+
+    html = re.sub(r"</head>", style + "</head>", html, count=1, flags=re.IGNORECASE)
+    html = re.sub(r"</body>", body + "</body>", html, count=1, flags=re.IGNORECASE)
+
+    graph_file.write_text(html, encoding="utf-8")
+    log.info("%d domande sovrapposte a %s", len(questions), graph_path)
+    return graph_path
 
 
 def generate() -> str:

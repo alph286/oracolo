@@ -24,11 +24,17 @@ file per l'unica cosa da adattare: il nome della tabella).
 python -m src.main sync      # scarica/aggiorna le entry dalla sorgente remota
 python -m src.main tag       # tagga le entry nuove/modificate via Ollama
 python -m src.main graph     # genera output/graph.html
-python -m src.main question  # genera output/question.html (domanda dell'oracolo)
+python -m src.main question  # sovrappone al centro di graph.html una domanda dell'oracolo
 python -m src.main pipeline  # sync + tag + graph + question, una volta
 python -m src.main run       # come pipeline, ma in loop ogni SYNC_INTERVAL_MINUTES
+python -m src.main serve     # avvia il webserver locale (output/graph.html + risposte via Ollama)
 python -m src.main seed      # inserisce dati di prova gia' taggati (per testare il grafo)
 ```
+
+Apri `http://localhost:8000/graph.html` (con `serve` avviato) per vedere la nebulosa
+dei tag con la domanda dell'oracolo sovrapposta al centro: "un'altra domanda"
+ne pesca una a caso tra quelle generate, "chiedi la risposta" fa rispondere
+Ollama (in stile criptico/oracolare) alla domanda mostrata.
 
 ## Note
 

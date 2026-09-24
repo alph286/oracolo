@@ -79,7 +79,7 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 def run_server() -> None:
-    directory = str(Path(config.QUESTION_OUTPUT_PATH).parent)
+    directory = str(Path(config.GRAPH_OUTPUT_PATH).parent)
     handler = partial(Handler, directory=directory)
     with ThreadingHTTPServer((config.SERVE_HOST, config.SERVE_PORT), handler) as httpd:
         log.info(
