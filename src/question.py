@@ -46,7 +46,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     height: 100%;
     overflow: hidden;
     pointer-events: none;
-    z-index: -2;
+    z-index: 0;
   }}
   .bg-graph .card,
   .bg-graph .card-body,
@@ -61,10 +61,11 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.7);
-    z-index: -1;
+    z-index: 1;
   }}
   .content {{
     position: relative;
+    z-index: 2;
     min-height: 100%;
     display: flex;
     align-items: center;
