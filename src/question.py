@@ -54,15 +54,40 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   .question.fade {{
     opacity: 0;
   }}
+  .reroll {{
+    margin-top: 2rem;
+    background: transparent;
+    color: #e91ee9;
+    border: 1px solid #e91ee9;
+    border-radius: 999px;
+    padding: 0.6rem 1.4rem;
+    font-family: inherit;
+    font-size: 1rem;
+    cursor: pointer;
+  }}
+  .reroll:hover {{
+    background: #e91ee9;
+    color: #1a1a1a;
+  }}
+  .wrap {{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }}
 </style>
 </head>
 <body>
-  <div class="question" id="question">{first_question}</div>
+  <div class="wrap">
+    <div class="question" id="question">{first_question}</div>
+    <button class="reroll" id="reroll" type="button">un'altra domanda</button>
+  </div>
   <script>
     const QUESTIONS = {questions_json};
     const ROTATE_SECONDS = {rotate_seconds};
     const el = document.getElementById("question");
+    const button = document.getElementById("reroll");
     let last = QUESTIONS.indexOf(el.textContent);
+    let timer = null;
 
     function pickNext() {{
       if (QUESTIONS.length <= 1) return QUESTIONS[0] || "";
@@ -82,9 +107,21 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       }}, 1000);
     }}
 
-    if (ROTATE_SECONDS > 0 && QUESTIONS.length > 1) {{
-      setInterval(showNext, ROTATE_SECONDS * 1000);
+    function startRotation() {{
+      if (ROTATE_SECONDS > 0 && QUESTIONS.length > 1) {{
+        timer = setInterval(showNext, ROTATE_SECONDS * 1000);
+      }}
     }}
+
+    button.addEventListener("click", () => {{
+      showNext();
+      if (timer) {{
+        clearInterval(timer);
+        startRotation();
+      }}
+    }});
+
+    startRotation();
   </script>
 </body>
 </html>
