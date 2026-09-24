@@ -37,6 +37,25 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     background: #1a1a1a;
     color: #ffffff;
     font-family: Georgia, "Times New Roman", serif;
+  }}
+  .bg-graph {{
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    pointer-events: none;
+    z-index: -2;
+  }}
+  .bg-overlay {{
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: -1;
+  }}
+  .content {{
+    position: relative;
+    min-height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -96,13 +115,17 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="question" id="question">{first_question}</div>
-    <div class="buttons">
-      <button class="reroll" id="reroll" type="button">un'altra domanda</button>
-      <button class="reroll" id="answer-btn" type="button">chiedi la risposta</button>
+  <iframe class="bg-graph" src="{graph_path}"></iframe>
+  <div class="bg-overlay"></div>
+  <div class="content">
+    <div class="wrap">
+      <div class="question" id="question">{first_question}</div>
+      <div class="buttons">
+        <button class="reroll" id="reroll" type="button">un'altra domanda</button>
+        <button class="reroll" id="answer-btn" type="button">chiedi la risposta</button>
+      </div>
+      <div class="answer" id="answer"></div>
     </div>
-    <div class="answer" id="answer"></div>
   </div>
   <script>
     const QUESTIONS = {questions_json};
@@ -240,6 +263,7 @@ def render_questions(questions: list[str], output_path: str | None = None) -> st
     html = HTML_TEMPLATE.format(
         first_question=first,
         questions_json=json.dumps(questions, ensure_ascii=False),
+        graph_path=Path(config.GRAPH_OUTPUT_PATH).name,
     )
     Path(output_path).write_text(html, encoding="utf-8")
     log.info("%d domande scritte in %s", len(questions), output_path)
