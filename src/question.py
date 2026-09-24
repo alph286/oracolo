@@ -35,7 +35,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   html, body {{
     height: 100%;
     margin: 0;
-    background: #1a1a1a;
+    background: #1a1a1a !important;
     color: #ffffff;
     font-family: Georgia, "Times New Roman", serif;
   }}
@@ -55,6 +55,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     height: 100% !important;
     margin: 0 !important;
     border: none !important;
+    background-color: #1a1a1a !important;
   }}
   .bg-overlay {{
     position: fixed;
