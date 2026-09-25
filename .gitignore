@@ -1,7 +1,7 @@
 .env
 data/*.db
 output/*.html
-lib/
+/lib/
 __pycache__/
 *.pyc
 .venv/
