@@ -149,13 +149,23 @@ h1 span { color: #dbab72; margin: 0 3px; }
 @keyframes pulse { 0%, 100% { transform: scale(1); opacity: .6; } 50% { transform: scale(1.3); opacity: 1; } }
 .loading-screen p { color: #8a7d6f; font: 10px 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .15em; }
 
+/* ── Physics panel ── */
+.physics-panel { position: absolute; top: 112px; right: 42px; z-index: 2; width: 210px; background: rgba(14,16,19,.88); border: 1px solid rgba(217,174,125,.22); border-radius: 4px; padding: 16px 18px 6px; backdrop-filter: blur(14px); box-shadow: 0 15px 40px rgba(0,0,0,.35); }
+.physics-heading { font: 9px 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .12em; color: #9c9287; margin: 0 0 14px; }
+.physics-row { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+.physics-row-label { display: flex; justify-content: space-between; align-items: baseline; font: 9px 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .07em; color: #a89e92; }
+.physics-row-label strong { color: #d9a66d; font-weight: 500; font-size: 10px; }
+.physics-row input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 3px; border-radius: 2px; background: rgba(236,226,211,.18); outline: 0; cursor: pointer; }
+.physics-row input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #d9a66d; cursor: pointer; box-shadow: 0 0 6px rgba(217,166,109,.6); }
+.physics-row input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: 50%; background: #d9a66d; cursor: pointer; }
+
 /* ── Error toast ── */
 .error-toast { position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%); z-index: 200; display: flex; align-items: center; gap: 14px; padding: 12px 18px; background: rgba(201,123,90,.15); border: 1px solid rgba(201,123,90,.4); border-radius: 4px; color: #e8a890; font-size: 11px; max-width: 90vw; }
 .error-toast button { width: 22px; height: 22px; display: grid; place-items: center; border: 0; background: transparent; color: #e8a890; cursor: pointer; }
 
 @media (max-width: 780px) {
   .topbar { height: 72px; padding: 0 20px; }
-  .header-center, .left-panel, .bottom-caption, .footer-note { display: none; }
+  .header-center, .left-panel, .bottom-caption, .footer-note, .physics-panel { display: none; }
   .oracle-input-wrap { bottom: 24px; width: calc(100vw - 36px); }
   .input-hint { display: none; }
   .aurora-one { left: -30%; top: 20%; }

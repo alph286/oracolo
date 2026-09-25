@@ -24,9 +24,25 @@ type GraphLink = {
   value: number;
 };
 
+type PhysicsParams = {
+  wander: number;
+  linkStrength: number;
+  charge: number;
+  linkDistance: number;
+};
+
+const DEFAULT_PHYSICS: PhysicsParams = { wander: 0.8, linkStrength: 1, charge: 30, linkDistance: 40 };
+
 const clusterColors = ['#FFB5E8', '#B5DEFF', '#E2C2FF', '#FFDAC1', '#FFF5BA', '#B5EAD7'];
 
 const emptyGraph: TagGraph = { nodes: [], links: [] };
+
+type ForceGraphHandle = {
+  centerAt: (x: number, y: number, ms?: number) => void;
+  zoom: (z: number, ms?: number) => void;
+  d3Force: (name: string, force?: ((alpha: number) => void) | null) => unknown;
+  d3ReheatSimulation: () => void;
+};
 
 export default function App() {
   const [graphData, setGraphData] = useState<TagGraph>(emptyGraph);
@@ -37,8 +53,10 @@ export default function App() {
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
   const [highlightedIds, setHighlightedIds] = useState<string[]>([]);
   const [detailTag, setDetailTag] = useState<TagDetail | null>(null);
+  const [physics, setPhysics] = useState<PhysicsParams>(DEFAULT_PHYSICS);
+  const physicsRef = useRef(physics);
 
-  const graphRef = useRef<{ centerAt: (x: number, y: number, ms?: number) => void; zoom: (z: number, ms?: number) => void } | undefined>(undefined);
+  const graphRef = useRef<ForceGraphHandle | undefined>(undefined);
 
   // ── Load the tag graph from Oracolo ──
   const loadGraph = useCallback(async () => {
@@ -60,6 +78,47 @@ export default function App() {
     nodes: graphData.nodes.map((n) => ({ ...n })),
     links: graphData.links.map((l) => ({ ...l })),
   }), [graphData]);
+
+  useEffect(() => {
+    physicsRef.current = physics;
+  }, [physics]);
+
+  // ── Perpetual gentle drift: a custom force nudges every free node a little
+  // bit at random each tick, on top of the normal link/charge forces. ──
+  useEffect(() => {
+    const fg = graphRef.current;
+    if (!fg || graph.nodes.length === 0) return;
+    fg.d3Force('wander', () => {
+      const strength = physicsRef.current.wander;
+      if (strength <= 0) return;
+      for (const node of graph.nodes) {
+        if (typeof node.fx === 'number') continue;
+        node.vx = (node.vx ?? 0) + (Math.random() - 0.5) * strength;
+        node.vy = (node.vy ?? 0) + (Math.random() - 0.5) * strength;
+      }
+    });
+  }, [graph.nodes]);
+
+  // ── Apply the attraction/repulsion/link-length sliders to the live simulation ──
+  useEffect(() => {
+    const fg = graphRef.current;
+    if (!fg) return;
+    const linkForce = fg.d3Force('link') as { distance: (d: number) => void; strength: (s: number) => void } | undefined;
+    linkForce?.distance(physics.linkDistance);
+    linkForce?.strength(physics.linkStrength);
+    const chargeForce = fg.d3Force('charge') as { strength: (s: number) => void } | undefined;
+    chargeForce?.strength(-physics.charge);
+    fg.d3ReheatSimulation();
+  }, [physics.linkDistance, physics.linkStrength, physics.charge, graph.nodes]);
+
+  // ── Keep the simulation from ever fully settling, so drift never stops ──
+  useEffect(() => {
+    if (loading || showIntro) return;
+    const id = setInterval(() => {
+      graphRef.current?.d3ReheatSimulation();
+    }, 2200);
+    return () => clearInterval(id);
+  }, [loading, showIntro]);
 
   // ── Search: highlight tags matching the query and focus the first match ──
   const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
@@ -135,8 +194,9 @@ export default function App() {
           graphData={graph}
           backgroundColor="rgba(0,0,0,0)"
           nodeRelSize={4}
-          d3AlphaDecay={0.018}
+          d3AlphaDecay={0.02}
           d3VelocityDecay={0.32}
+          cooldownTime={Infinity}
           linkColor={() => 'rgba(196, 177, 158, 0.14)'}
           linkWidth={(link: GraphLink) => {
             const source = typeof link.source === 'string' ? link.source : link.source.id;
@@ -218,6 +278,38 @@ export default function App() {
         <div className="input-hint"><Command size={12} /> <span>Invio</span></div>
         <button type="submit" aria-label="Cerca"><ArrowUpRight size={18} /></button>
       </form>
+
+      <div className="physics-panel">
+        <p className="physics-heading">Fisica della nebulosa</p>
+        <label className="physics-row">
+          <div className="physics-row-label"><span>Movimento</span><strong>{physics.wander.toFixed(1)}</strong></div>
+          <input
+            type="range" min={0} max={3} step={0.1} value={physics.wander}
+            onChange={(e) => setPhysics((p) => ({ ...p, wander: Number(e.target.value) }))}
+          />
+        </label>
+        <label className="physics-row">
+          <div className="physics-row-label"><span>Attrazione</span><strong>{physics.linkStrength.toFixed(2)}</strong></div>
+          <input
+            type="range" min={0} max={2} step={0.05} value={physics.linkStrength}
+            onChange={(e) => setPhysics((p) => ({ ...p, linkStrength: Number(e.target.value) }))}
+          />
+        </label>
+        <label className="physics-row">
+          <div className="physics-row-label"><span>Repulsione</span><strong>{physics.charge}</strong></div>
+          <input
+            type="range" min={0} max={150} step={5} value={physics.charge}
+            onChange={(e) => setPhysics((p) => ({ ...p, charge: Number(e.target.value) }))}
+          />
+        </label>
+        <label className="physics-row">
+          <div className="physics-row-label"><span>Lunghezza collegamenti</span><strong>{physics.linkDistance}</strong></div>
+          <input
+            type="range" min={10} max={150} step={5} value={physics.linkDistance}
+            onChange={(e) => setPhysics((p) => ({ ...p, linkDistance: Number(e.target.value) }))}
+          />
+        </label>
+      </div>
 
       {loadError && (
         <div className="error-toast">
