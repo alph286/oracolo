@@ -5,6 +5,7 @@ from pathlib import Path
 import schedule
 
 from src import config, seed, server, sync, tagging
+from src.export_static import export_static
 from src.logging_utils import get_logger, setup_logging
 
 log = get_logger(__name__)
@@ -27,6 +28,11 @@ def do_serve() -> None:
 def do_seed() -> None:
     seed.seed_test_data()
     print("[seed] dati di prova inseriti nel DB locale")
+
+
+def do_export(args: argparse.Namespace) -> None:
+    export_static(Path(args.out), args.base)
+    print(f"[export] export statico pronto in {args.out} (base: {args.base})")
 
 
 def do_pipeline() -> None:
@@ -61,6 +67,18 @@ def main() -> None:
     subparsers.add_parser(
         "seed", help="Inserisce dati di prova gia' taggati (per testare il grafo)"
     )
+    export_parser = subparsers.add_parser(
+        "export",
+        help="Esporta una fotografia statica (HTML + JSON) della Nebulosa, per hosting solo PHP/HTML",
+    )
+    export_parser.add_argument(
+        "--out", default="export/nebulosa", help="Cartella di output (default: export/nebulosa)"
+    )
+    export_parser.add_argument(
+        "--base",
+        default="/mondoarotoli/nebulosa/",
+        help="Percorso in cui verra' caricata su hosting (default: /mondoarotoli/nebulosa/)",
+    )
 
     args = parser.parse_args()
     setup_logging()
@@ -73,6 +91,7 @@ def main() -> None:
         "run": run_loop,
         "serve": do_serve,
         "seed": do_seed,
+        "export": lambda: do_export(args),
     }
     commands[args.command]()
 

@@ -34,14 +34,19 @@ export type TagDetail = {
   related: RelatedTag[];
 };
 
+// Percorso base del deploy (vite `base`): '/' in locale, la sottocartella
+// dell'hosting in produzione. Le chiamate all'API restano relative ad esso,
+// cosi' funzionano sia con il server Python locale sia con l'export statico.
+const API_BASE = import.meta.env.BASE_URL;
+
 export async function fetchGraph(): Promise<TagGraph> {
-  const res = await fetch('/api/graph');
+  const res = await fetch(`${API_BASE}api/graph`);
   if (!res.ok) throw new Error('Impossibile caricare la nebulosa dei tag');
   return res.json();
 }
 
 export async function fetchTagDetail(name: string): Promise<TagDetail> {
-  const res = await fetch(`/api/tag/${encodeURIComponent(name)}`);
+  const res = await fetch(`${API_BASE}api/tag/${encodeURIComponent(name)}`);
   if (!res.ok) throw new Error(`Tag "${name}" non trovato`);
   return res.json();
 }

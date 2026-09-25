@@ -1,12 +1,12 @@
 import json
-from collections import Counter
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-from src import config, db_local, graph
+from src import config, graph
 from src.logging_utils import get_logger
+from src.tagdetail import build_tag_detail
 
 log = get_logger(__name__)
 
@@ -24,26 +24,11 @@ class Handler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def _handle_tag_detail(self, tag_name: str) -> None:
-        entries = db_local.get_entries_with_tags()
-        matching = [e for e in entries if tag_name in e["tags"]]
-        if not matching:
+        detail = build_tag_detail(tag_name)
+        if detail is None:
             self._send_json(404, {"error": "tag non trovato"})
             return
-
-        related_counts: Counter = Counter()
-        for entry in matching:
-            for tag in entry["tags"]:
-                if tag != tag_name:
-                    related_counts[tag] += 1
-
-        self._send_json(200, {
-            "name": tag_name,
-            "count": len(matching),
-            "entries": [
-                {"id": e["id"], "text": e["text"], "likes": e["likes"]} for e in matching[:20]
-            ],
-            "related": [{"name": n, "weight": w} for n, w in related_counts.most_common(12)],
-        })
+        self._send_json(200, detail)
 
     def _send_json(self, status: int, payload) -> None:
         data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
