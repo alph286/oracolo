@@ -24,13 +24,25 @@ type GraphLink = {
   value: number;
 };
 
-type PhysicsParams = {
-  linkStrength: number;
-};
-
 const LINK_DISTANCE = 40;
+const LINK_STRENGTH = 1;
 
-const DEFAULT_PHYSICS: PhysicsParams = { linkStrength: 1 };
+// ── Gentle satellite-like float: a stable per-node orbit derived from its id,
+// so each node quietly drifts around its resting point instead of sitting still. ──
+const FLOAT_AMPLITUDE = 1.6;
+
+function floatOffset(id: string, time: number): { x: number; y: number } {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  }
+  const phase = (hash % 1000) / 1000 * Math.PI * 2;
+  const speed = 0.0004 + (hash % 137) / 137 * 0.0003;
+  return {
+    x: Math.cos(time * speed + phase) * FLOAT_AMPLITUDE,
+    y: Math.sin(time * speed * 1.3 + phase * 1.7) * FLOAT_AMPLITUDE,
+  };
+}
 
 const clusterColors = ['#FFB5E8', '#B5DEFF', '#E2C2FF', '#FFDAC1', '#FFF5BA', '#B5EAD7'];
 
@@ -52,7 +64,6 @@ export default function App() {
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
   const [highlightedIds, setHighlightedIds] = useState<string[]>([]);
   const [detailTag, setDetailTag] = useState<TagDetail | null>(null);
-  const [physics, setPhysics] = useState<PhysicsParams>(DEFAULT_PHYSICS);
 
   const graphRef = useRef<ForceGraphHandle | undefined>(undefined);
 
@@ -77,16 +88,16 @@ export default function App() {
     links: graphData.links.map((l) => ({ ...l })),
   }), [graphData]);
 
-  // ── Apply the attraction slider to the live simulation and disable repulsion ──
+  // ── Fixed simulation settings: attraction only, no repulsion ──
   useEffect(() => {
     const fg = graphRef.current;
     if (!fg) return;
     const linkForce = fg.d3Force('link') as { distance: (d: number) => void; strength: (s: number) => void } | undefined;
     linkForce?.distance(LINK_DISTANCE);
-    linkForce?.strength(physics.linkStrength);
+    linkForce?.strength(LINK_STRENGTH);
     fg.d3Force('charge', null);
     fg.d3ReheatSimulation();
-  }, [physics.linkStrength, graph.nodes]);
+  }, [graph.nodes]);
 
   // ── Search: highlight tags matching the query and focus the first match ──
   const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
@@ -183,17 +194,20 @@ export default function App() {
             const nearby = isNearHovered(node);
             const base = 1.8 + Math.min(node.count, 8) * 0.35;
             const radius = (active ? base * 2.6 : nearby ? base * 1.8 : base) / Math.sqrt(globalScale);
+            const offset = floatOffset(node.id, Date.now());
+            const x = (node.x ?? 0) + offset.x;
+            const y = (node.y ?? 0) + offset.y;
             if (active || nearby) {
-              const glow = ctx.createRadialGradient(node.x ?? 0, node.y ?? 0, 0, node.x ?? 0, node.y ?? 0, radius * 5);
+              const glow = ctx.createRadialGradient(x, y, 0, x, y, radius * 5);
               glow.addColorStop(0, active ? 'rgba(243,197,139,0.7)' : 'rgba(210,193,174,0.35)');
               glow.addColorStop(1, 'rgba(210,193,174,0)');
               ctx.fillStyle = glow;
               ctx.beginPath();
-              ctx.arc(node.x ?? 0, node.y ?? 0, radius * 5, 0, 2 * Math.PI, false);
+              ctx.arc(x, y, radius * 5, 0, 2 * Math.PI, false);
               ctx.fill();
             }
             ctx.beginPath();
-            ctx.arc(node.x ?? 0, node.y ?? 0, radius, 0, 2 * Math.PI, false);
+            ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
             ctx.fillStyle = active ? '#fff0d0' : clusterColors[node.cluster % clusterColors.length];
             ctx.fill();
             if (active) {
@@ -203,9 +217,10 @@ export default function App() {
             }
           }}
           nodePointerAreaPaint={(node: GraphNode, color: string, ctx: CanvasRenderingContext2D) => {
+            const offset = floatOffset(node.id, Date.now());
             ctx.fillStyle = color;
             ctx.beginPath();
-            ctx.arc(node.x ?? 0, node.y ?? 0, 10, 0, 2 * Math.PI, false);
+            ctx.arc((node.x ?? 0) + offset.x, (node.y ?? 0) + offset.y, 10, 0, 2 * Math.PI, false);
             ctx.fill();
           }}
         />
@@ -246,17 +261,6 @@ export default function App() {
         <div className="input-hint"><Command size={12} /> <span>Invio</span></div>
         <button type="submit" aria-label="Cerca"><ArrowUpRight size={18} /></button>
       </form>
-
-      <div className="physics-panel">
-        <p className="physics-heading">Fisica della nebulosa</p>
-        <label className="physics-row">
-          <div className="physics-row-label"><span>Attrazione</span><strong>{physics.linkStrength.toFixed(2)}</strong></div>
-          <input
-            type="range" min={0} max={2} step={0.05} value={physics.linkStrength}
-            onChange={(e) => setPhysics((p) => ({ ...p, linkStrength: Number(e.target.value) }))}
-          />
-        </label>
-      </div>
 
       {loadError && (
         <div className="error-toast">
