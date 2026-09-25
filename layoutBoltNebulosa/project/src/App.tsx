@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
-import { ArrowUpRight, CircleHelp, Command, Search, X } from 'lucide-react';
+import { CircleHelp, Search, X } from 'lucide-react';
 import { fetchGraph, fetchTagDetail, type TagDetail, type TagGraph } from '@/lib/api';
 import TagDetailModal from '@/components/TagDetailModal';
 import miaIcona from './mistakelogo.png';
@@ -61,6 +61,7 @@ export default function App() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showIntro, setShowIntro] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchResultsVisible, setSearchResultsVisible] = useState(false);
   const [hoveredNode, setHoveredNode] = useState<GraphNode | null>(null);
   const [highlightedIds, setHighlightedIds] = useState<string[]>([]);
   const [detailTag, setDetailTag] = useState<TagDetail | null>(null);
@@ -99,21 +100,37 @@ export default function App() {
     fg.d3ReheatSimulation();
   }, [graph.nodes]);
 
-  // ── Search: highlight tags matching the query and focus the first match ──
-  const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  // ── Search: live results as the user types, no submit needed ──
+  const searchMatches = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
-    if (!term) {
-      setHighlightedIds([]);
-      return;
-    }
-    const matches = graph.nodes.filter((n) => n.label.toLowerCase().includes(term));
-    setHighlightedIds(matches.map((n) => n.id));
-    const first = matches[0];
-    if (first && typeof first.x === 'number' && typeof first.y === 'number' && graphRef.current) {
-      graphRef.current.centerAt(first.x, first.y, 600);
+    if (!term) return [];
+    return graph.nodes
+      .filter((n) => n.label.toLowerCase().includes(term))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+  }, [searchTerm, graph.nodes]);
+
+  useEffect(() => {
+    setHighlightedIds(searchMatches.map((n) => n.id));
+  }, [searchMatches]);
+
+  const focusNode = (node: GraphNode) => {
+    if (typeof node.x === 'number' && typeof node.y === 'number' && graphRef.current) {
+      graphRef.current.centerAt(node.x, node.y, 600);
       graphRef.current.zoom(3, 600);
     }
+  };
+
+  const selectSearchResult = (node: GraphNode) => {
+    focusNode(node);
+    openTagDetail(node.id);
+    setSearchResultsVisible(false);
+  };
+
+  const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const first = searchMatches[0];
+    if (first) selectSearchResult(first);
   };
 
   // ── Open detail panel for a tag ──
@@ -254,12 +271,32 @@ export default function App() {
         <div className="input-icon"><Search size={17} strokeWidth={1.5} /></div>
         <input
           value={searchTerm}
-          onChange={(event) => setSearchTerm(event.target.value)}
+          onChange={(event) => {
+            setSearchTerm(event.target.value);
+            setSearchResultsVisible(true);
+          }}
+          onFocus={() => setSearchResultsVisible(true)}
+          onBlur={() => setTimeout(() => setSearchResultsVisible(false), 120)}
           placeholder="Cerca un tag nella Nebulosa."
           aria-label="Cerca un tag"
         />
-        <div className="input-hint"><Command size={12} /> <span>Invio</span></div>
-        <button type="submit" aria-label="Cerca"><ArrowUpRight size={18} /></button>
+        {searchResultsVisible && searchMatches.length > 0 && (
+          <ul className="search-results">
+            {searchMatches.map((node) => (
+              <li key={node.id}>
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => selectSearchResult(node)}>
+                  <span className="search-result-label">{node.label}</span>
+                  <span className="search-result-count">{node.count}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {searchResultsVisible && searchTerm.trim() && searchMatches.length === 0 && (
+          <ul className="search-results">
+            <li className="search-result-empty">Nessun tag corrisponde a "{searchTerm.trim()}"</li>
+          </ul>
+        )}
       </form>
 
       {loadError && (
