@@ -40,9 +40,13 @@ def _build_frontend(base_path: str, output_dir: Path) -> None:
     if build_dir.exists():
         shutil.rmtree(build_dir)
 
+    npx = shutil.which("npx")
+    if npx is None:
+        raise RuntimeError("npx non trovato nel PATH. Installa Node.js/npm.")
+
     log.info("Build del frontend con base %s...", base_path)
     subprocess.run(
-        ["npx", "vite", "build", f"--base={base_path}", f"--outDir={build_dir.name}"],
+        [npx, "vite", "build", f"--base={base_path}", f"--outDir={build_dir.name}"],
         cwd=FRONTEND_PROJECT_DIR,
         check=True,
     )
