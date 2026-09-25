@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
-import { CircleHelp, Search, X } from 'lucide-react';
+import { CircleHelp, Search, Sparkles, X } from 'lucide-react';
 import { fetchGraph, fetchTagDetail, type TagDetail, type TagGraph } from '@/lib/api';
 import TagDetailModal from '@/components/TagDetailModal';
 import miaIcona from './mistakelogo.png';
@@ -253,6 +253,7 @@ export default function App() {
         </div>
         <div className="header-center"><span className="status-dot" />Frammento <span className="header-divider" /> {graphData.nodes.length} tag condivisi</div>
         <div className="header-actions">
+          <a className="help-button" href={`${import.meta.env.BASE_URL}question.html`} aria-label="L'oracolo"><Sparkles size={16} strokeWidth={1.5} /></a>
           <button className="help-button" type="button" aria-label="Help"><CircleHelp size={17} strokeWidth={1.5} /></button>
         </div>
       </header>

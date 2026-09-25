@@ -45,9 +45,16 @@ Apri `http://localhost:8000/` (con `serve` avviato) per esplorare la nebulosa
 dei tag: cerca un tag dalla barra in basso, clicca un nodo per vedere i
 frammenti che lo usano e i tag collegati.
 
-Il server espone anche due endpoint JSON usati dal frontend:
+Il server espone anche endpoint JSON usati dal frontend:
 - `GET /api/graph` — nodi (tag) e archi (co-occorrenze) dell'intero grafo
 - `GET /api/tag/<nome>` — frammenti e tag collegati per un singolo tag
+- `GET /api/questions` — domande evocative generate al volo da Ollama, usate da `question.html`
+- `POST /api/answer` — risposta criptica dell'Oracolo a una domanda (`{"question": "..."}`)
+
+Apri `http://localhost:8000/question.html` per "l'Oracolo": una domanda
+generata al volo (serve Ollama raggiungibile), con un pulsante per rerollare
+tra quelle gia' ricevute e uno per chiedere una risposta criptica. Raggiungibile
+anche dal pulsante a forma di stella nell'header della Nebulosa.
 
 ## Note
 

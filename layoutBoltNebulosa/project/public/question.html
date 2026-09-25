@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>L'Oracolo</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: #14090f;
+      font-family: Georgia, "Times New Roman", serif;
+      color: #ffffff;
+    }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      box-sizing: border-box;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(233, 30, 233, 0.12), transparent 55%),
+        radial-gradient(circle at 75% 75%, rgba(217, 174, 125, 0.08), transparent 50%),
+        #14090f;
+    }
+    .oracolo-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 42rem;
+      text-align: center;
+    }
+    .oracolo-eyebrow {
+      font-family: 'DM Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: .2em;
+      font-size: 11px;
+      color: #a8899e;
+      margin: 0 0 1.5rem;
+    }
+    .oracolo-question {
+      font-size: 2rem;
+      line-height: 1.4;
+      color: #e91ee9;
+      min-height: 3.5rem;
+      transition: opacity .6s ease;
+    }
+    .oracolo-question.fade {
+      opacity: 0;
+    }
+    .oracolo-buttons {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 2rem;
+    }
+    .oracolo-btn {
+      background: transparent;
+      color: #e91ee9;
+      border: 1px solid #e91ee9;
+      border-radius: 999px;
+      padding: .6rem 1.4rem;
+      font-family: inherit;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background .2s, color .2s;
+    }
+    .oracolo-btn:hover:not(:disabled) {
+      background: #e91ee9;
+      color: #14090f;
+    }
+    .oracolo-btn:disabled {
+      opacity: .5;
+      cursor: default;
+    }
+    .oracolo-answer {
+      margin-top: 1.5rem;
+      max-width: 36rem;
+      font-size: 1.1rem;
+      line-height: 1.5;
+      color: #cfcfcf;
+      font-style: italic;
+      min-height: 1.5rem;
+    }
+    .oracolo-back {
+      position: fixed;
+      top: 24px;
+      left: 24px;
+      font-family: 'DM Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      font-size: 10px;
+      color: #a8899e;
+      text-decoration: none;
+    }
+    .oracolo-back:hover {
+      color: #e91ee9;
+    }
+  </style>
+</head>
+<body>
+  <a class="oracolo-back" href="./">&larr; la nebulosa</a>
+  <div class="oracolo-wrap">
+    <p class="oracolo-eyebrow">L'Oracolo</p>
+    <div class="oracolo-question" id="oracolo-question">l'oracolo si sta destando&hellip;</div>
+    <div class="oracolo-buttons">
+      <button class="oracolo-btn" id="oracolo-reroll" type="button" disabled>un'altra domanda</button>
+      <button class="oracolo-btn" id="oracolo-answer-btn" type="button" disabled>chiedi la risposta</button>
+    </div>
+    <div class="oracolo-answer" id="oracolo-answer"></div>
+  </div>
+  <script>
+    const oracoloEl = document.getElementById("oracolo-question");
+    const oracoloReroll = document.getElementById("oracolo-reroll");
+    const oracoloAnswerBtn = document.getElementById("oracolo-answer-btn");
+    const oracoloAnswerEl = document.getElementById("oracolo-answer");
+    let oracoloQuestions = [];
+    let oracoloLast = -1;
+
+    function oracoloPickNext() {
+      if (oracoloQuestions.length <= 1) return oracoloQuestions[0] || "";
+      let i;
+      do {
+        i = Math.floor(Math.random() * oracoloQuestions.length);
+      } while (i === oracoloLast);
+      oracoloLast = i;
+      return oracoloQuestions[i];
+    }
+
+    function oracoloShowNext() {
+      oracoloAnswerEl.textContent = "";
+      oracoloEl.classList.add("fade");
+      setTimeout(() => {
+        oracoloEl.textContent = oracoloPickNext();
+        oracoloEl.classList.remove("fade");
+      }, 600);
+    }
+
+    async function oracoloLoadQuestions() {
+      try {
+        const res = await fetch("api/questions");
+        const data = await res.json();
+        if (!res.ok || !Array.isArray(data.questions) || data.questions.length === 0) {
+          throw new Error(data.error || "nessuna domanda disponibile");
+        }
+        oracoloQuestions = data.questions;
+        oracoloEl.textContent = oracoloPickNext();
+        oracoloReroll.disabled = false;
+        oracoloAnswerBtn.disabled = false;
+      } catch (err) {
+        oracoloEl.textContent =
+          "l'oracolo tace (serve avviato con 'python -m src.main serve' e Ollama raggiungibile?)";
+      }
+    }
+
+    oracoloReroll.addEventListener("click", oracoloShowNext);
+
+    oracoloAnswerBtn.addEventListener("click", async () => {
+      oracoloAnswerBtn.disabled = true;
+      oracoloAnswerEl.textContent = "l'oracolo riflette...";
+      try {
+        const res = await fetch("api/answer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: oracoloEl.textContent }),
+        });
+        const data = await res.json();
+        oracoloAnswerEl.textContent = res.ok
+          ? data.answer
+          : (data.error || "l'oracolo non risponde");
+      } catch (err) {
+        oracoloAnswerEl.textContent =
+          "impossibile contattare l'oracolo (serve avviato con 'python -m src.main serve'?)";
+      } finally {
+        oracoloAnswerBtn.disabled = false;
+      }
+    });
+
+    oracoloLoadQuestions();
+  </script>
+</body>
+</html>
