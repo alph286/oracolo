@@ -4,7 +4,7 @@ from pathlib import Path
 
 import schedule
 
-from src import config, graph, question, seed, server, sync, tagging
+from src import config, seed, server, sync, tagging
 from src.logging_utils import get_logger, setup_logging
 
 log = get_logger(__name__)
@@ -20,16 +20,6 @@ def do_tag() -> None:
     print(f"[tag] {n} entry taggate con Ollama")
 
 
-def do_graph() -> None:
-    path = graph.generate()
-    print(f"[graph] grafo generato in {path}")
-
-
-def do_question() -> None:
-    path = question.generate()
-    print(f"[question] domanda sovrapposta al grafo in {path}")
-
-
 def do_serve() -> None:
     server.run_server()
 
@@ -42,8 +32,6 @@ def do_seed() -> None:
 def do_pipeline() -> None:
     do_sync()
     do_tag()
-    do_graph()
-    do_question()
 
 
 def run_loop() -> None:
@@ -64,16 +52,11 @@ def main() -> None:
 
     subparsers.add_parser("sync", help="Sincronizza le entry da MySQL a locale")
     subparsers.add_parser("tag", help="Tagga le entry non ancora processate")
-    subparsers.add_parser("graph", help="Genera il grafo HTML dai tag")
-    subparsers.add_parser(
-        "question",
-        help="Sovrappone al centro di graph.html una domanda dell'oracolo ispirata ai tag/entry",
-    )
-    subparsers.add_parser("pipeline", help="Esegue sync + tag + graph + question una volta")
+    subparsers.add_parser("pipeline", help="Esegue sync + tag una volta")
     subparsers.add_parser("run", help="Esegue la pipeline in loop, a intervalli")
     subparsers.add_parser(
         "serve",
-        help="Avvia il webserver locale che serve output/ e risponde alle domande via Ollama",
+        help="Avvia il webserver locale che serve il frontend Nebulosa e /api/graph, /api/tag/<nome>",
     )
     subparsers.add_parser(
         "seed", help="Inserisce dati di prova gia' taggati (per testare il grafo)"
@@ -86,8 +69,6 @@ def main() -> None:
     commands = {
         "sync": do_sync,
         "tag": do_tag,
-        "graph": do_graph,
-        "question": do_question,
         "pipeline": do_pipeline,
         "run": run_loop,
         "serve": do_serve,

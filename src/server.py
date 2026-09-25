@@ -1,72 +1,51 @@
 import json
+from collections import Counter
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
-import requests
-
-from src import config
+from src import config, db_local, graph
 from src.logging_utils import get_logger
 
 log = get_logger(__name__)
 
-ANSWER_PROMPT = """Sei l'Oracolo: non dai risposte logiche, dirette o utili. \
-Parli per enigmi, immagini, simboli e paradossi, come una sibilla. Non \
-spiegare, non consigliare, non essere coerente in modo razionale: evoca, \
-allude, lascia interpretare. Mai una frase che suoni come un consiglio pratico.
-
-Rispondi in italiano alla domanda seguente con UNA SOLA affermazione, breve \
-e secca (una frase sola, non una domanda, non un elenco, senza "ma" o "e" \
-che la spezzino in piu' pensieri). Rispondi solo con il testo dell'affermazione, \
-senza virgolette, senza premesse tipo "L'oracolo dice".
-
-Domanda: "{question}"
-"""
-
-
-def _ask_ollama_for_answer(question: str) -> str:
-    response = requests.post(
-        f"{config.OLLAMA_HOST}/api/generate",
-        json={
-            "model": config.OLLAMA_TAG_MODEL,
-            "prompt": ANSWER_PROMPT.format(question=question),
-            "stream": False,
-            "options": {"temperature": 1.3},
-        },
-        timeout=config.OLLAMA_TIMEOUT_SECONDS,
-    )
-    response.raise_for_status()
-    return response.json()["response"].strip()
-
 
 class Handler(SimpleHTTPRequestHandler):
-    def do_POST(self):
-        if self.path != "/api/answer":
-            self.send_error(404)
+    def do_GET(self):
+        path = urlsplit(self.path).path
+        if path == "/api/graph":
+            self._send_json(200, graph.build_graph_json())
+            return
+        if path.startswith("/api/tag/"):
+            tag_name = unquote(path[len("/api/tag/"):])
+            self._handle_tag_detail(tag_name)
+            return
+        super().do_GET()
+
+    def _handle_tag_detail(self, tag_name: str) -> None:
+        entries = db_local.get_entries_with_tags()
+        matching = [e for e in entries if tag_name in e["tags"]]
+        if not matching:
+            self._send_json(404, {"error": "tag non trovato"})
             return
 
-        length = int(self.headers.get("Content-Length", 0))
-        try:
-            body = json.loads(self.rfile.read(length) or b"{}")
-        except json.JSONDecodeError:
-            self._send_json(400, {"error": "body non valido"})
-            return
+        related_counts: Counter = Counter()
+        for entry in matching:
+            for tag in entry["tags"]:
+                if tag != tag_name:
+                    related_counts[tag] += 1
 
-        question = str(body.get("question", "")).strip()
-        if not question:
-            self._send_json(400, {"error": "manca 'question'"})
-            return
+        self._send_json(200, {
+            "name": tag_name,
+            "count": len(matching),
+            "entries": [
+                {"id": e["id"], "text": e["text"], "likes": e["likes"]} for e in matching[:20]
+            ],
+            "related": [{"name": n, "weight": w} for n, w in related_counts.most_common(12)],
+        })
 
-        try:
-            answer = _ask_ollama_for_answer(question)
-        except requests.RequestException:
-            log.exception("Chiamata a Ollama fallita (host %s raggiungibile?)", config.OLLAMA_HOST)
-            self._send_json(502, {"error": "l'oracolo non risponde"})
-            return
-
-        self._send_json(200, {"answer": answer or "L'oracolo resta in silenzio."})
-
-    def _send_json(self, status: int, payload: dict) -> None:
+    def _send_json(self, status: int, payload) -> None:
         data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -79,11 +58,11 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 def run_server() -> None:
-    directory = str(Path(config.GRAPH_OUTPUT_PATH).parent)
+    directory = str(Path(config.FRONTEND_DIST_PATH).resolve())
     handler = partial(Handler, directory=directory)
     with ThreadingHTTPServer((config.SERVE_HOST, config.SERVE_PORT), handler) as httpd:
         log.info(
-            "Server in ascolto su http://%s:%d (cartella servita: %s)",
+            "Server in ascolto su http://%s:%d (frontend: %s)",
             config.SERVE_HOST, config.SERVE_PORT, directory,
         )
         try:
